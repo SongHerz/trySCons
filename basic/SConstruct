@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+env = Environment()
+# CCFLAGS can also be given at Environment initialization time
+# env = Environment(CCFLAGS='-O3')
+
+env.Append(CCFLAGS='-O3')
+env.Program(target='bar', source=['foo.c'])
