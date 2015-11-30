@@ -1,0 +1,34 @@
+This demos:
+1. Build an executable
+2. Build a shared library
+3. Executable/library installation
+4. Assign an alias to targets.
+   When run `scons alias_name` all targets with same alias will be build.
+
+References:
+https://bitbucket.org/scons/scons/wiki/SconsTutorial1
+https://bitbucket.org/scons/scons/wiki/SconsTutorial2
+
+
+Behavior:
+Because in the SConstruct file, the default target has been set to 'all',
+invocations of scons without given target will apply to the default 'all' target.
+
+'install' and 'alsoinstall' are not the default target, and one has to specify
+'install' or 'alsoinstall' explicitly when some action is needed.
+
+1. $ scons
+   Build 'helloworld' executable and 'libhello.so' without installation.
+2. $ scons --clean
+   Remove 'helloworld' executable and 'libhello.so' and related object files.
+3. $ scons install
+   Will build 'helloworld' and 'libhello.so', if they have not been build.
+   And install 'helloworld' to `pwd`/install/bin
+               'libhello.so' to `pwd`/install/lib
+4. $ scons alsoinstall
+   The behavior is the same as that of `scons install`, because 'alsoinstall' is
+   set to be an alias of 'install'.
+5. $ scons --clean
+   Will only remove 'helloworld' executable, 'libhello.so' and related objects from current dir.
+6. $ scons --clean install
+   Will uninstall installed binaries, and do same things as `scons --clean`

@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+import os
+
+env = Environment()
+
+bin_target = env.Program(target="helloworld", source=['helloworld.c'])
+
+# SHLIBPREFIX parameter can override default prefix.
+# E.g. under linux, the prefix is 'lib'.
+lib_target = env.SharedLibrary(target="hello", source=["hello.c"])
+
+# Set 'all' alias to building binaries
+all_alias = env.Alias('all', [bin_target, lib_target])
+# Set default target
+Default(all_alias)
+
+################
+# Installation #
+################
+install_prefix = os.path.join(os.getcwd(), "install")
+install_lib_dir = os.path.join(install_prefix, "lib")
+install_bin_dir = os.path.join(install_prefix, "bin")
+
+install_targets = []
+install_targets.append(env.Install(dir=install_lib_dir, source=lib_target))
+install_targets.append(env.Install(dir=install_bin_dir, source=bin_target))
+env.Alias('alsoinstall', install_targets)

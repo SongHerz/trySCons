@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+env = Environment()
+t = env.Program(target='bar', source=['foo.c'])
+Default(t)
+
+SConscript('SConscript', variant_dir='build_release', duplicate=0, exports={'MODE':'release'})
+SConscript('SConscript', variant_dir='build_debug', duplicate=0, exports={'MODE':'debug'})
