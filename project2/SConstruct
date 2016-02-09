@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+# For convenience, it is best to use VariantDir with SConscript file
+#
+# https://bitbucket.org/scons/scons/wiki/VariantDir%28%29
+# Note that when you're not using an SConscript file in the src subdirectory, you must actually specify that the program must be built from the build/hello.c file that SCons will duplicate in the build subdirectory. 
+
+EnsurePythonVersion(2, 7)
+
+
+import os
+import buildhelper as bh
+
+SOURCE_DIR = 'src'
+VARIANT_DIR = 'obj'
+
+
+
+LIB_DIRS, APP_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
+print "LIB_DIRS:", LIB_DIRS
+print "APP_SRCS:", APP_SRCS
+
+
+env = Environment()
+env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
+
+def to_build_path(src_path):
+    if isinstance(src_path, str):
+        return bh.replace_top_dir(src_path, VARIANT_DIR)
+    else:
+        assert isinstance(src_path, list)
+        return map(lambda x: bh.replace_top_dir(x, VARIANT_DIR), src_path)
+
+# Build static libs
+STATIC_LIBS = []
+for each in LIB_DIRS:
+    lib_name = os.path.join(each, os.path.basename(each))
+    STATIC_LIBS.append(env.StaticLibrary(
+        to_build_path(lib_name), 
+        to_build_path(bh.c_cpp_sources(each))))
+
