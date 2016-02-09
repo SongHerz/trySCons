@@ -1,0 +1,8 @@
+Import('env')
+
+libs = [
+SConscript('util/SConscript', exports='env'),
+SConscript('ut/SConscript', exports='env')
+]
+env.Program('prog0', ['prog0.c'], LIBS=libs)
+env.Program('prog1', ['prog1.c'], LIBS=libs)

@@ -1,0 +1,2 @@
+env = Environment(CPPPATH='#src')
+SConscript('src/SConscript', exports='env', variant_dir='obj/release', duplicate=0)
