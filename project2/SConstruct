@@ -14,15 +14,9 @@ import buildhelper as bh
 SOURCE_DIR = 'src'
 VARIANT_DIR = 'obj'
 
-
-
 LIB_DIRS, APP_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
 print "LIB_DIRS:", LIB_DIRS
 print "APP_SRCS:", APP_SRCS
-
-
-env = Environment()
-env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
 
 def to_build_path(src_path):
     if isinstance(src_path, str):
@@ -30,6 +24,9 @@ def to_build_path(src_path):
     else:
         assert isinstance(src_path, list)
         return map(lambda x: bh.replace_top_dir(x, VARIANT_DIR), src_path)
+
+env = Environment()
+env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
 
 # Build static libs
 STATIC_LIBS = []
