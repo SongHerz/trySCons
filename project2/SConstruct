@@ -14,9 +14,9 @@ import buildhelper as bh
 SOURCE_DIR = 'src'
 VARIANT_DIR = 'obj'
 
-LIB_DIRS, APP_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
+LIB_DIRS, APP_MAIN_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
 print "LIB_DIRS:", LIB_DIRS
-print "APP_SRCS:", APP_SRCS
+print "APP_MAIN_SRCS:", APP_MAIN_SRCS
 
 def to_build_path(src_path):
     if isinstance(src_path, str):
@@ -36,3 +36,8 @@ for each in LIB_DIRS:
         to_build_path(lib_name), 
         to_build_path(bh.c_cpp_sources(each))))
 
+# Build apps
+for app_src in APP_MAIN_SRCS:
+    app_name, _ = os.path.splitext(app_src)
+    app_obj = env.Object(to_build_path(app_src))
+    env.Program(to_build_path(app_name), app_obj, LIBS=STATIC_LIBS)
