@@ -3,9 +3,12 @@
 import StringIO
 import pipes
 import subprocess
+import itertools
+
+from .containers import OrderedSet
 
 
-class __SymTbl(object):
+class _SymTbl(object):
     def __init__(self):
         self.__undef_syms = set()
         self.__def_syms = set()
@@ -25,6 +28,14 @@ class __SymTbl(object):
     def defined(self):
         return self.__def_syms
 
+    def is_undefined_defined_in(self, another):
+        """
+        Return True, if at least one undefined symbol defined in another symtbl.
+               False, otherwise.
+        """
+        assert isinstance(another, _SymTbl)
+        return any(itertools.imap(lambda u: u in another.defined(), self.undefined()))
+
     def __str__(self):
         sio = StringIO.StringIO()
         print >> sio, "Symbol Table"
@@ -40,7 +51,7 @@ class __SymTbl(object):
         return sio.getvalue()
 
 
-def get_symtbl(binary):
+def _get_symtbl(binary):
     """
     Raise exception with failure reason when failed to run nm.
     """
@@ -49,7 +60,7 @@ def get_symtbl(binary):
     # When check_output failed, subprocess.CalledProcessError will be raised
     nm_out = subprocess.check_output(cmd, shell=True)
 
-    sym_tbl = __SymTbl()
+    sym_tbl = _SymTbl()
     ## Get defined / undefined symbols from nm
     for each in nm_out.splitlines():
         fields = each.split()
@@ -69,10 +80,62 @@ def get_symtbl(binary):
 
     return sym_tbl
 
+
+class _LinkDep(object):
+    """
+    Present dependency relations of objects/libraries. 
+    """
+    def __init__(self, file_):
+        """
+        On initialize, it only contains information of the given file.
+        Dependencies should be resolved later.
+        """
+        self.__file = file_
+        self.__symtbl = _get_symtbl(self.__file)
+        # Set(_LinkDep)
+        self.__deps = OrderedSet()
+        pass
+
+    def _resolve_dep(self, link_deps):
+        """
+        Resolve dependencies with other _LinkDep instances.
+        This is intended to be called by the dependency resolving algorithm.
+        """
+        for each in link_deps:
+            if self.__symtbl.is_undefined_defined_in(each.__symtbl):
+                self.__deps.add(each)
+        pass
+
+    def file_path(self):
+        return self.__file
+
+    def dependencies(self):
+        return self.__deps
+
+    def __str__(self):
+        return "LinkDep({}, [{}])".format(
+                self.file_path(),
+                ', '.join(map(lambda ld: ld.file_path(), self.dependencies())))
+
+
 def resolve(main_obj, libs):
     """
     Return a list of libraries in correct order that are dependencies of the main object file.
     If libraries has dependencies, their dependencies are also resolved.
     """
+    # ld is short for link_dep
+    main_ld = _LinkDep(main_obj)
+    other_lds = map(_LinkDep, libs)
+    all_lds = [main_ld]
+    all_lds.extend(other_lds)
+
+    # Resolve for all lds
+    for each in all_lds:
+        each._resolve_dep(filter(lambda ld: each is not ld, all_lds))
+
+    # XXX: Print dependencies for all lds
+    for each in all_lds:
+        print each
+
     # FIXME: FINISH THIS
     pass
