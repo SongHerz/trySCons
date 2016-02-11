@@ -122,6 +122,7 @@ def resolve(main_obj, libs):
     """
     Return a list of libraries in correct order that are dependencies of the main object file.
     If libraries has dependencies, their dependencies are also resolved.
+    NOTE: May have problem on circular dependencies. 
     """
     # ld is short for link_dep
     main_ld = _LinkDep(main_obj)
