@@ -124,7 +124,7 @@ def _int_flatten_deps(parent_lds, current_ld, ret):
     assert isinstance(ret, list)
 
     if current_ld in parent_lds:
-        print "Warning: Circular dependency detected for '{}'".format(current_ld.file_path)
+        print "Warning: Circular dependency detected for '{}'".format(current_ld.file_path())
         return
 
     ret.append(current_ld)
