@@ -118,7 +118,35 @@ class _LinkDep(object):
                 ', '.join(map(lambda ld: ld.file_path(), self.dependencies())))
 
 
-def resolve(main_obj, libs):
+def _int_flatten_deps(parent_lds, current_ld, ret):
+    assert isinstance(parent_lds, OrderedSet)
+    assert isinstance(current_ld, _LinkDep)
+    assert isinstance(ret, list)
+
+    if current_ld in parent_lds:
+        print "Warning: Circular dependency detected for '{}'".format(current_ld.file_path)
+        return
+
+    ret.append(current_ld)
+    parent_lds.add(current_ld)
+
+    for each in current_ld.dependencies():
+        _int_flatten_deps(parent_lds, each, ret)
+
+    parent_lds.pop()
+    pass
+
+def _flatten_deps(main_obj_ld):
+    """
+    Return [_LinkDep] with given resolved main_obj_ld instance.
+    NOTE: circular dependencies not supported.
+    """
+    assert isinstance(main_obj_ld, _LinkDep)
+    ret = []
+    _int_flatten_deps(OrderedSet(), main_obj_ld, ret)
+    return ret
+
+def resolve(main_obj, libs, show_detail=False):
     """
     Return a list of libraries in correct order that are dependencies of the main object file.
     If libraries has dependencies, their dependencies are also resolved.
@@ -134,9 +162,18 @@ def resolve(main_obj, libs):
     for each in all_lds:
         each._resolve_dep(filter(lambda ld: each is not ld, all_lds))
 
-    # XXX: Print dependencies for all lds
-    for each in all_lds:
-        print each
+    # Print dependencies for all lds
+    if show_detail:
+        for each in all_lds:
+            print each
 
-    # FIXME: FINISH THIS
-    pass
+    # Collect dependencies from the main_obj
+    flatten_res = _flatten_deps(main_ld)
+    if show_detail:
+        print ', '.join(map(lambda ld: '{} <{}>'.format(ld.file_path(), hex(id(ld))) , flatten_res))
+
+    # Minimal dependencies
+    minimal_res = reversed(OrderedSet(reversed(flatten_res)))
+    return map(lambda ld: ld.file_path(), minimal_res)
+
+# FIXME: ADD CASE TO SHOW circular dependencies
