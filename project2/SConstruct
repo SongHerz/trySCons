@@ -25,7 +25,9 @@ def to_build_path(src_path):
         assert isinstance(src_path, list)
         return map(lambda x: bh.replace_top_dir(x, VARIANT_DIR), src_path)
 
-env = Environment(CPPPATH=[SOURCE_DIR])
+env = Environment(
+        CPPPATH=[SOURCE_DIR],
+        CXXFLAGS=['-std=c++11'])
 env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
 
 # Build static libs

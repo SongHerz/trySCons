@@ -175,5 +175,3 @@ def resolve(main_obj, libs, show_detail=False):
     # Minimal dependencies
     minimal_res = reversed(OrderedSet(reversed(flatten_res)))
     return map(lambda ld: ld.file_path(), minimal_res)
-
-# FIXME: ADD CASE TO SHOW circular dependencies
