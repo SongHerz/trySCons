@@ -256,6 +256,27 @@ void lambdaFeature() {
     cout << "fib(5) = " << fib(5) << endl;
 }
 
+////////////////////////////////
+//  non-member begin() end()  //
+////////////////////////////////
+// std::begin() and std::end() works for both STL containerss and arrays;
+void nonMemberBeginEndFeature() {
+    cout << "############################" << endl;
+    cout << "# Non-member begin() end() #" << endl;
+    cout << "############################" << endl;
+
+    int v[] = {1, 2, 3};
+
+    cout << "All numbers:" << endl;
+    std::for_each(std::begin(v), std::end(v), [](int n) { cout << n << endl; });
+
+    auto is_odd = [](int n) { return n % 2 == 1; };
+    auto pos = std::find_if(std::begin(v), std::end(v), is_odd);
+    if (pos != std::end(v)) {
+        cout << "Got odd number: " << *pos << endl;
+    }
+}
+
 int main() {
     autoFeature();
     nullptrFeature();
@@ -263,6 +284,7 @@ int main() {
     stronglyTypedEnumFeature();
     smartPointerFeature();
     lambdaFeature();
+    nonMemberBeginEndFeature();
 
     return 0;
 }
