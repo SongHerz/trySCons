@@ -1,3 +1,4 @@
+// http://www.codeproject.com/Articles/570638/Ten-Cplusplus11-Features-Every-Cplusplus-Developer
 #include <typeinfo>
 
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <map>
 #include <utility>
 #include <memory>
+#include <algorithm>
 
 using ::std::cout;
 using ::std::endl;
@@ -136,10 +138,131 @@ public:
     // virtual void h(int) override { cout << "E::h" << endl; }
 };
 
+////////////////////////////
+//  Strongly-typed enums  //
+////////////////////////////
+void stronglyTypedEnumFeature() {
+    cout << "#######################" << endl;
+    cout << "# Strongly typed enum #" << endl;
+    cout << "#######################" << endl;
+
+    enum class Options { None, One, All };
+    // For enum class, the type itself is a scope.
+    // error: 'All' was not declared in this scope
+    // Options o = All;
+    Options o = Options::All;
+}
+
+//////////////////////
+//  Smart Pointers  //
+//////////////////////
+template<typename P>
+void showInt(const char* prefix, P p) {
+    cout << prefix << ' ' << *p << endl;
+}
+
+void tryUniqPtr() {
+    cout << "# uniq_ptr #" << endl;
+    std::unique_ptr<int> p1(new int(42));
+    std::unique_ptr<int> p2 = std::move(p1); // transfer ownership
+
+    cout << "unique_ptr p1 = " << p1.get() << endl;
+    cout << "unique_ptr p2 = " << p2.get() << endl;
+
+    if (p1) {
+        showInt("Value from uniqe_ptr p1: ", p1.get());
+    }
+
+    (*p2)++;
+
+    if (p2) {
+        showInt("Value from unique_ptr p2: ", p2.get());
+    }
+}
+
+void trySharedPtr() {
+    cout << "# shared_ptr #" << endl;
+    // There 2 p1 initializations equivalent.
+    // Use std::make_shared is recommended, because:
+    // 1. Shared object and the smart pointer can be allocated together.
+    // 2. Overcome exception after new problem (Exception after new may cause memory leak).
+    // std::shared_ptr<int> p1(new int(42));
+    auto p1 = std::make_shared<int>(42);
+    std::shared_ptr<int> p2 = p1;
+
+    cout << "p1 use count: " << p1.use_count() << endl;
+    cout << "p2 use count: " << p2.use_count() << endl;
+
+    (*p1)++;
+    showInt("Value from shared_ptr p1: ", p1);
+    showInt("Value from shared_ptr p2: ", p2);
+}
+
+void tryWeakPtr() {
+    cout << "# weak_ptr #" << endl;
+
+    auto p = std::make_shared<int>(42);
+    std::weak_ptr<int> wp = p;
+
+    {
+        // A weak_ptr instance must be locked before referring to the object.
+        auto sp = wp.lock();
+        cout << "sp type: " << typeid(sp).name() << endl;
+        cout << "sp = " << sp << endl;
+        cout << "*sp = " << *sp << endl;
+    }
+
+    p.reset();
+    cout << "after reset p" << endl;
+    cout << "p = " << p << endl;
+    if (wp.expired()) {
+        cout << "expired" << endl;
+    }
+}
+
+void smartPointerFeature() {
+    cout << "#################" << endl;
+    cout << "# Smart Pointer #" << endl;
+    cout << "#################" << endl;
+
+    tryUniqPtr();
+    trySharedPtr();
+    tryWeakPtr();
+}
+
+//////////////
+//  Lambda  //
+//////////////
+void lambdaFeature() {
+    cout << "##########" << endl;
+    cout << "# Lambda #" << endl;
+    cout << "##########" << endl;
+
+    vector<int> v;
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+
+    cout << "All numbers:" << endl;
+    std::for_each(std::begin(v), std::end(v), [](int n) { cout << n << endl; });
+
+    auto is_odd = [](int n) { return n % 2 == 1; };
+    auto pos = std::find_if(std::begin(v), std::end(v), is_odd);
+    if (pos != std::end(v)) {
+        cout << "Got odd number: " << *pos << endl;
+    }
+
+    std::function<int(int)> fib = [&fib](int n) { return n < 2 ? 1 : fib(n - 1) + fib(n - 2); };
+    cout << "fib(5) = " << fib(5) << endl;
+}
+
 int main() {
     autoFeature();
     nullptrFeature();
     rangeBasedForLoop();
+    stronglyTypedEnumFeature();
+    smartPointerFeature();
+    lambdaFeature();
 
     return 0;
 }
