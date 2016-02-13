@@ -188,7 +188,31 @@ DEBUG_CONFIG = BuildConfig('obj/debug', {
 })
 
 
-build_env = BuildEnv(SOURCE_DIR)
-print build_env
-build = Build(build_env, RELEASE_CONFIG)
-build.build()
+def choose_build_config(build_type):
+    if build_type == 'release':
+        return RELEASE_CONFIG
+    elif build_type == 'coverage':
+        return COVERAGE_CONFIG
+    else:
+        assert build_type == 'debug'
+        return DEBUG_CONFIG
+
+
+def main():
+    vs = Variables(None, ARGUMENTS)
+    vs.Add(ListVariable(key='build', help='build type', default='debug',
+                        names=('release', 'coverage', 'debug'), map={}))
+
+    help_env = Environment(variables=vs)
+    Help(vs.GenerateHelpText(help_env))
+
+    build_types = set(help_env['build'])
+
+    build_env = BuildEnv(SOURCE_DIR)
+    print build_env
+
+    for each in build_types:
+        build = Build(build_env, choose_build_config(each))
+        build.build()
+
+main()
