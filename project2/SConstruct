@@ -17,6 +17,20 @@ EnsurePythonVersion(2, 7)
 g_node_list_type = SCons.Node.NodeList
 
 
+# Configurations for various build
+class BuildConfig(object):
+    def __init__(self, variant_dir, cons_vars):
+        """
+        variant_dir     Path to the variant dir.
+        cons_vars       {'construction variable' : value}
+        """
+        assert isinstance(variant_dir, str)
+        assert isinstance(cons_vars, dict)
+        self.variant_dir = variant_dir
+        self.cons_vars = cons_vars
+        pass
+
+
 class BuildEnv(object):
     """
     Build enviroment for all builds.
@@ -69,23 +83,24 @@ class Build(object):
     """
     Build apps.
     """
-    def __init__(self, build_env, variant_dir):
+    def __init__(self, build_env, build_cfg):
         """
-        build_env       A BuildEnv instance.
-        variant_dir     build directory
+        build_env   A BuildEnv instance.
+        build_cfg   A BuildConfig instance.
         """
         self.__build_env = build_env
+        self.__build_cfg = build_cfg
         self.__env = self.__build_env.common_env.Clone()
-        self.__variant_dir = variant_dir
-        self.__env.VariantDir(self.__variant_dir, self.__build_env.src_dir, duplicate=0)
+        self.__env.Append(**self.__build_cfg.cons_vars)
+        self.__env.VariantDir(self.__build_cfg.variant_dir, self.__build_env.src_dir, duplicate=0)
         pass
 
     def __to_build_path(self, src_path):
         if isinstance(src_path, str):
-            return bh.replace_top_dir(src_path, self.__variant_dir)
+            return bh.replace_top_dir(src_path, self.__build_cfg.variant_dir)
         else:
             assert isinstance(src_path, list)
-            return map(lambda x: bh.replace_top_dir(x, self.__variant_dir), src_path)
+            return map(lambda x: bh.replace_top_dir(x, self.__build_cfg.variant_dir), src_path)
 
     def build_static_libs(self):
         """
@@ -146,7 +161,7 @@ class Build(object):
             if False:
                 self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
 
-            app_main_target = self.__env.Program(self.__to_build_path(app_name), app_main_obj, LIBS=static_lib_targets)
+            app_main_target = self.__env.Program(app_name, app_main_obj, LIBS=static_lib_targets)
             assert isinstance(app_main_target, g_node_list_type)
             acc.extend(app_main_target)
             return acc
@@ -165,10 +180,15 @@ class Build(object):
 
 
 SOURCE_DIR = 'src'
-VARIANT_DIR = 'obj'
+
+RELEASE_CONFIG = BuildConfig('obj/release', {})
+COVERAGE_CONFIG = BuildConfig('obj/coverage', {})
+DEBUG_CONFIG = BuildConfig('obj/debug', {
+    'CCFLAGS': ['-g']
+})
 
 
 build_env = BuildEnv(SOURCE_DIR)
 print build_env
-build = Build(build_env, VARIANT_DIR)
+build = Build(build_env, RELEASE_CONFIG)
 build.build()
