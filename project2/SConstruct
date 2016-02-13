@@ -5,74 +5,90 @@
 # https://bitbucket.org/scons/scons/wiki/VariantDir%28%29
 # Note that when you're not using an SConscript file in the src subdirectory, you must actually specify that the program must be built from the build/hello.c file that SCons will duplicate in the build subdirectory.
 
+import os
+import StringIO
+import buildhelper as bh
+
 EnsurePythonVersion(2, 7)
 
 
-import os
-import buildhelper as bh
+class Build(object):
+    """
+    Build apps.
+    """
+    def __init__(self, common_env, src_dir, variant_dir):
+        """
+        common_env      A common Environment instance.
+                        This instance is cloned before modification and using in this class.
+        src_dir         source directory
+        variant_dir     build directory
+        """
+        self.__env = common_env.Clone()
+        self.__src_dir = src_dir
+        self.__variant_dir = variant_dir
+        self.__lib_dirs, self.__app_main_srcs = bh.dirs_c_cpp_sources(src_dir)
+
+        self.__env.VariantDir(self.__variant_dir, self.__src_dir, duplicate=0)
+        pass
+
+    def __to_build_path(self, src_path):
+        if isinstance(src_path, str):
+            return bh.replace_top_dir(src_path, self.__variant_dir)
+        else:
+            assert isinstance(src_path, list)
+            return map(lambda x: bh.replace_top_dir(x, self.__variant_dir), src_path)
+
+    def __build_static_libs(self):
+        """
+        Return a list of static libraries targets.
+        """
+        static_libs = []
+
+        for each in self.__lib_dirs:
+            lib_name = os.path.join(each, os.path.basename(each))
+            static_libs.append(self.__env.StaticLibrary(
+                self.__to_build_path(lib_name),
+                self.__to_build_path(bh.c_cpp_sources(each))))
+
+        return static_libs
+
+    def __build_apps(self, static_lib_targets):
+        """
+        Construct app targets.
+        static_lib_targets  [static library targets]
+        """
+        for app_src in self.__app_main_srcs:
+            app_name, _ = os.path.splitext(app_src)
+            app_obj = self.__env.Object(self.__to_build_path(app_src))
+            self.__env.Program(self.__to_build_path(app_name), app_obj, LIBS=static_lib_targets)
+        pass
+
+    def build(self):
+        """
+        Construct all targets.
+        """
+        static_lib_targets = self.__build_static_libs()
+        self.__build_apps(static_lib_targets)
+        pass
+
+    def __str__(self):
+        """
+        Retrn a string which is the statics of this class.
+        """
+        sio = StringIO.StringIO()
+        print >> sio, "LIB_DIRS:", self.__lib_dirs
+        print >> sio, "APP_MAIN_SRCS:", self.__app_main_srcs
+        print >> sio, "VARIANT_DIR:", self.__variant_dir
+        return sio.getvalue()
+
 
 SOURCE_DIR = 'src'
 VARIANT_DIR = 'obj'
 
-LIB_DIRS, APP_MAIN_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
-print "LIB_DIRS:", LIB_DIRS
-print "APP_MAIN_SRCS:", APP_MAIN_SRCS
-
-
-def to_build_path(src_path):
-    if isinstance(src_path, str):
-        return bh.replace_top_dir(src_path, VARIANT_DIR)
-    else:
-        assert isinstance(src_path, list)
-        return map(lambda x: bh.replace_top_dir(x, VARIANT_DIR), src_path)
-
-
-def build_static_libs(env, lib_dirs):
-    """
-    Return a list of static libraries targets.
-    env         Environment instance
-    lib_dirs    [lib path]
-    """
-    static_libs = []
-
-    for each in lib_dirs:
-        lib_name = os.path.join(each, os.path.basename(each))
-        static_libs.append(env.StaticLibrary(
-            to_build_path(lib_name),
-            to_build_path(bh.c_cpp_sources(each))))
-
-    return static_libs
-
-
-def build_apps(env, app_main_srcs, static_lib_targets):
-    """
-    Construct app targets.
-    env                 Environment instance
-    app_main_srcs       [app main source path]
-    static_lib_targets  [static library targets]
-    """
-    for app_src in app_main_srcs:
-        app_name, _ = os.path.splitext(app_src)
-        app_obj = env.Object(to_build_path(app_src))
-        env.Program(to_build_path(app_name), app_obj, LIBS=static_lib_targets)
-    pass
-
-
-def build(parent_env, lib_dirs, app_main_srcs):
-    """
-    parent_env      Parent Environment instance.
-    lib_dirs        [static libirary path]
-    app_main_srcs   [app main source path]
-    """
-    env = parent_env.Clone()
-    static_lib_targets = build_static_libs(env, LIB_DIRS)
-    build_apps(env, APP_MAIN_SRCS, static_lib_targets)
-    pass
-
-
 env = Environment(
         CPPPATH=[SOURCE_DIR],
         CXXFLAGS=['-std=c++11'])
-env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
 
-build(env, LIB_DIRS, APP_MAIN_SRCS)
+build = Build(env, SOURCE_DIR, VARIANT_DIR)
+print build
+build.build()
