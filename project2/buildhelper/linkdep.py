@@ -83,7 +83,7 @@ def _get_symtbl(binary):
 
 class _LinkDep(object):
     """
-    Present dependency relations of objects/libraries. 
+    Present dependency relations of objects/libraries.
     """
     def __init__(self, file_):
         """
@@ -124,7 +124,8 @@ def _int_flatten_deps(parent_lds, current_ld, ret):
     assert isinstance(ret, list)
 
     if current_ld in parent_lds:
-        print "Warning: Circular dependency detected for '{}'".format(current_ld.file_path())
+        print "Warning: Circular dependency detected for '{}', dependency chain '{}'".format(
+            current_ld.file_path(), ', '.join(map(lambda ld: ld.file_path(), list(parent_lds) + [current_ld])))
         return
 
     ret.append(current_ld)
@@ -150,7 +151,7 @@ def resolve(main_obj, libs, show_detail=False):
     """
     Return a list of libraries in correct order that are dependencies of the main object file.
     If libraries has dependencies, their dependencies are also resolved.
-    NOTE: May have problem on circular dependencies. 
+    NOTE: May have problem on circular dependencies.
     """
     # ld is short for link_dep
     main_ld = _LinkDep(main_obj)
