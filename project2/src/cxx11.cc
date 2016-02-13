@@ -277,6 +277,38 @@ void nonMemberBeginEndFeature() {
     }
 }
 
+/////////////////////////////////////
+//  static_assert and type traits  //
+/////////////////////////////////////
+template<typename T, size_t N>
+class Vec {
+    static_assert(N < 3, "Size is too large");
+    T _points[N];
+};
+
+// This will cause error on static_assert
+// src/cxx11.cc: In instantiation of 'class Vec<int, 3ul>':
+// src/cxx11.cc:289:13:   required from here
+// src/cxx11.cc:285:5: error: static assertion failed: Size is too large
+//      static_assert(N < 3, "Size is too large");
+//           ^
+// Vec<int, 3> v1;
+Vec<int, 2> v2;
+
+template<typename T1, typename T2>
+auto add(T1 t1, T2 t2) -> decltype(t1 + t2) {
+    return t1 + t2;
+}
+
+void staticAssertTypeTraitsFeature() {
+    cout << "#############################" << endl;
+    cout << "# static_assert type_traits #" << endl;
+    cout << "#############################" << endl;
+
+    cout << add(1, 3.14) << endl;
+    cout << add("one", 2) << endl;
+}
+
 int main() {
     autoFeature();
     nullptrFeature();
@@ -285,6 +317,7 @@ int main() {
     smartPointerFeature();
     lambdaFeature();
     nonMemberBeginEndFeature();
+    staticAssertTypeTraitsFeature();
 
     return 0;
 }
