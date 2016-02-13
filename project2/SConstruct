@@ -3,7 +3,7 @@
 # For convenience, it is best to use VariantDir with SConscript file
 #
 # https://bitbucket.org/scons/scons/wiki/VariantDir%28%29
-# Note that when you're not using an SConscript file in the src subdirectory, you must actually specify that the program must be built from the build/hello.c file that SCons will duplicate in the build subdirectory. 
+# Note that when you're not using an SConscript file in the src subdirectory, you must actually specify that the program must be built from the build/hello.c file that SCons will duplicate in the build subdirectory.
 
 EnsurePythonVersion(2, 7)
 
@@ -18,6 +18,7 @@ LIB_DIRS, APP_MAIN_SRCS = bh.dirs_c_cpp_sources(SOURCE_DIR)
 print "LIB_DIRS:", LIB_DIRS
 print "APP_MAIN_SRCS:", APP_MAIN_SRCS
 
+
 def to_build_path(src_path):
     if isinstance(src_path, str):
         return bh.replace_top_dir(src_path, VARIANT_DIR)
@@ -30,16 +31,37 @@ env = Environment(
         CXXFLAGS=['-std=c++11'])
 env.VariantDir(VARIANT_DIR, SOURCE_DIR, duplicate=0)
 
-# Build static libs
-STATIC_LIBS = []
-for each in LIB_DIRS:
-    lib_name = os.path.join(each, os.path.basename(each))
-    STATIC_LIBS.append(env.StaticLibrary(
-        to_build_path(lib_name), 
-        to_build_path(bh.c_cpp_sources(each))))
 
-# Build apps
-for app_src in APP_MAIN_SRCS:
-    app_name, _ = os.path.splitext(app_src)
-    app_obj = env.Object(to_build_path(app_src))
-    env.Program(to_build_path(app_name), app_obj, LIBS=STATIC_LIBS)
+def build_static_libs(env, lib_dirs):
+    """
+    Return a list of static libraries targets.
+    env         Environment instance
+    lib_dirs    [lib path]
+    """
+    static_libs = []
+
+    for each in lib_dirs:
+        lib_name = os.path.join(each, os.path.basename(each))
+        static_libs.append(env.StaticLibrary(
+            to_build_path(lib_name),
+            to_build_path(bh.c_cpp_sources(each))))
+
+    return static_libs
+
+
+def build_apps(env, app_main_srcs, static_lib_targets):
+    """
+    Construct app targets.
+    env                 Environment instance
+    app_main_srcs       [app main source path]
+    static_lib_targets  [static library targets]
+    """
+    for app_src in app_main_srcs:
+        app_name, _ = os.path.splitext(app_src)
+        app_obj = env.Object(to_build_path(app_src))
+        env.Program(to_build_path(app_name), app_obj, LIBS=static_lib_targets)
+    pass
+
+
+static_lib_targets = build_static_libs(env, LIB_DIRS)
+build_apps(env, APP_MAIN_SRCS, static_lib_targets)
