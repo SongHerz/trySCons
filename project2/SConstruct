@@ -7,7 +7,10 @@
 
 import os
 import StringIO
+# SCons is used explicitly
+import SCons
 import buildhelper as bh
+from buildhelper import linkdep
 
 EnsurePythonVersion(2, 7)
 
@@ -86,15 +89,39 @@ class Build(object):
         """
         Return a list of static libraries targets.
         """
-        static_libs = []
+        node_list_type = SCons.Node.NodeList
 
-        for each in self.__build_env.static_lib_dirs:
-            lib_name = os.path.join(each, os.path.basename(each))
-            static_libs.append(self.__env.StaticLibrary(
+        def build_one_static_lib(acc, lib_dir):
+            lib_name = os.path.join(lib_dir, os.path.basename(lib_dir))
+            static_lib_target = self.__env.StaticLibrary(
                 self.__to_build_path(lib_name),
-                self.__to_build_path(self.__build_env.static_lib_srcs(each))))
+                self.__to_build_path(self.__build_env.static_lib_srcs(lib_dir)))
+            assert isinstance(static_lib_target, node_list_type)
+            acc.extend(static_lib_target)
+            return acc
 
-        return static_libs
+        return reduce(build_one_static_lib, self.__build_env.static_lib_dirs, node_list_type())
+
+    @staticmethod
+    def __linked_static_lib_targets(app_main_obj_targets, static_lib_targets):
+        """
+        Return [necessary static lib targets]
+        app_main_obj_targets    [app main obj target node]
+        static_lib_targets      [static lib target node]
+        """
+        node_list_type = SCons.Node.NodeList
+        assert isinstance(app_main_obj_targets, node_list_type) and len(app_main_obj_targets) == 1
+        assert isinstance(static_lib_targets, node_list_type)
+
+        app_main_obj_node = app_main_obj_targets[0]
+        app_main_obj_path = str(app_main_obj_node)
+
+        # {lib path : target node}
+        lib_path_node_map = dict(map(lambda n: (str(n), n), static_lib_targets))
+
+        ordered_bins = linkdep.resolve(app_main_obj_path, lib_path_node_map.keys())
+        return map(lambda p: lib_path_node_map[p],
+                   filter(lambda p: p != app_main_obj_path, ordered_bins))
 
     def __build_apps(self, static_lib_targets):
         """
@@ -103,8 +130,12 @@ class Build(object):
         """
         for app_src in self.__build_env.app_main_srcs:
             app_name, _ = os.path.splitext(app_src)
-            app_obj = self.__env.Object(self.__to_build_path(app_src))
-            self.__env.Program(self.__to_build_path(app_name), app_obj, LIBS=static_lib_targets)
+            app_main_obj = self.__env.Object(self.__to_build_path(app_src))
+
+            if False:
+                self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
+
+            self.__env.Program(self.__to_build_path(app_name), app_main_obj, LIBS=static_lib_targets)
         pass
 
     def build(self):
