@@ -14,6 +14,8 @@ from buildhelper import linkdep
 
 EnsurePythonVersion(2, 7)
 
+g_node_list_type = SCons.Node.NodeList
+
 
 class BuildEnv(object):
     """
@@ -85,22 +87,20 @@ class Build(object):
             assert isinstance(src_path, list)
             return map(lambda x: bh.replace_top_dir(x, self.__variant_dir), src_path)
 
-    def __build_static_libs(self):
+    def build_static_libs(self):
         """
         Return a list of static libraries targets.
         """
-        node_list_type = SCons.Node.NodeList
-
         def build_one_static_lib(acc, lib_dir):
             lib_name = os.path.join(lib_dir, os.path.basename(lib_dir))
             static_lib_target = self.__env.StaticLibrary(
                 self.__to_build_path(lib_name),
                 self.__to_build_path(self.__build_env.static_lib_srcs(lib_dir)))
-            assert isinstance(static_lib_target, node_list_type)
+            assert isinstance(static_lib_target, g_node_list_type)
             acc.extend(static_lib_target)
             return acc
 
-        return reduce(build_one_static_lib, self.__build_env.static_lib_dirs, node_list_type())
+        return reduce(build_one_static_lib, self.__build_env.static_lib_dirs, g_node_list_type())
 
     @staticmethod
     def __linked_static_lib_targets(app_main_obj_targets, static_lib_targets):
@@ -109,9 +109,8 @@ class Build(object):
         app_main_obj_targets    [app main obj target node]
         static_lib_targets      [static lib target node]
         """
-        node_list_type = SCons.Node.NodeList
-        assert isinstance(app_main_obj_targets, node_list_type) and len(app_main_obj_targets) == 1
-        assert isinstance(static_lib_targets, node_list_type)
+        assert isinstance(app_main_obj_targets, g_node_list_type) and len(app_main_obj_targets) == 1
+        assert isinstance(static_lib_targets, g_node_list_type)
 
         app_main_obj_node = app_main_obj_targets[0]
         app_main_obj_path = str(app_main_obj_node)
@@ -123,28 +122,46 @@ class Build(object):
         return map(lambda p: lib_path_node_map[p],
                    filter(lambda p: p != app_main_obj_path, ordered_bins))
 
-    def __build_apps(self, static_lib_targets):
+    def build_app_main_objs(self):
+        """
+        Construct app main source object targets.
+        """
+        def build_one_app_main_obj(acc, app_main_src):
+            app_main_obj = self.__env.Object(self.__to_build_path(app_main_src))
+            assert isinstance(app_main_obj, g_node_list_type)
+            acc.extend(app_main_obj)
+            return acc
+
+        return reduce(build_one_app_main_obj, self.__build_env.app_main_srcs, g_node_list_type())
+
+    def build_apps(self, app_main_obj_targets, static_lib_targets):
         """
         Construct app targets.
-        static_lib_targets  [static library targets]
+        app_main_obj_targets    [app main obj target]
+        static_lib_targets      [static library target]
         """
-        for app_src in self.__build_env.app_main_srcs:
-            app_name, _ = os.path.splitext(app_src)
-            app_main_obj = self.__env.Object(self.__to_build_path(app_src))
+        def build_one_app(acc, app_main_obj):
+            app_name, _ = os.path.splitext(str(app_main_obj))
 
             if False:
                 self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
 
-            self.__env.Program(self.__to_build_path(app_name), app_main_obj, LIBS=static_lib_targets)
-        pass
+            app_main_target = self.__env.Program(self.__to_build_path(app_name), app_main_obj, LIBS=static_lib_targets)
+            assert isinstance(app_main_target, g_node_list_type)
+            acc.extend(app_main_target)
+            return acc
+
+        return reduce(build_one_app, app_main_obj_targets, g_node_list_type())
 
     def build(self):
         """
-        Construct all targets.
+        Return (compile targets, link targets)
+        Construct all builds.
         """
-        static_lib_targets = self.__build_static_libs()
-        self.__build_apps(static_lib_targets)
-        pass
+        static_lib_targets = self.build_static_libs()
+        app_main_obj_targets = self.build_app_main_objs()
+        app_targets = self.build_apps(app_main_obj_targets, static_lib_targets)
+        return (static_lib_targets + app_main_obj_targets, app_targets)
 
 
 SOURCE_DIR = 'src'
@@ -153,6 +170,5 @@ VARIANT_DIR = 'obj'
 
 build_env = BuildEnv(SOURCE_DIR)
 print build_env
-
 build = Build(build_env, VARIANT_DIR)
 build.build()
