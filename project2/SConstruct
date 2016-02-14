@@ -47,14 +47,17 @@ class BuildEnv(object):
     }
 
     @staticmethod
-    def __create_build_vars():
+    def __add_build_vars(env):
         """
         Return Variables instance.
         """
+        assert isinstance(env, Environment)
         vs = Variables(None, ARGUMENTS)
         vs.Add(ListVariable(key='build', help='build type', default='debug',
                             names=('release', 'coverage', 'debug'), map={}))
-        return vs
+        vs.Update(env)
+        Help(vs.GenerateHelpText(env))
+        pass
 
     def __init__(self, src_dir):
         """
@@ -63,13 +66,9 @@ class BuildEnv(object):
         self.src_dir = src_dir
         self.static_lib_dirs, self.app_main_srcs = bh.dirs_c_cpp_sources(src_dir)
 
-        vs = self.__create_build_vars()
-        self.common_env = Environment(
-            variables=vs,
-            CPPPATH=[self.src_dir])
-        Help(vs.GenerateHelpText(self.common_env))
-
+        self.common_env = Environment(CPPPATH=[self.src_dir])
         self.common_env.Append(**self.COMMON_CONSTR_VARS)
+        self.__add_build_vars(self.common_env)
 
         # { static lib dir : [c/c++ sources] }
         self.__static_lib_srcs_map = {}
