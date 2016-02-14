@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+import subprocess
 
 
 def parse_args():
@@ -49,8 +50,14 @@ def build(build_types, clean):
     clean       Bool    When True, clean the project with given targets
                              False, build the project with given targets
     """
-    print 'build_types:', build_types
-    print 'clean:', clean
+    assert isinstance(build_types, list) and build_types
+    common_cmd_args = ['scons', '-Q', 'build={}'.format(','.join(build_types))]
+
+    if not clean:
+        subprocess.check_call(common_cmd_args + ['stage=compile'])
+        subprocess.check_call(common_cmd_args + ['stage=link'])
+    else:
+        subprocess.check_call(common_cmd_args + ['stage=link', '--clean'])
     pass
 
 # build clean
