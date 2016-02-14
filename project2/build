@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import sys
+import pipes
 import argparse
 import subprocess
+import multiprocessing
 
 
 def parse_args():
@@ -50,18 +52,30 @@ def build(build_types, clean):
     clean       Bool    When True, clean the project with given targets
                              False, build the project with given targets
     """
+    def run_cmd(args):
+        print
+        print ' '.join(map(pipes.quote, args))
+        subprocess.check_call(args)
+        pass
+
+    def jobs_arg():
+        cpu_count = multiprocessing.cpu_count()
+        if cpu_count > 1:
+            return ['--jobs={}'.format(cpu_count)]
+        else:
+            return []
+
     assert isinstance(build_types, list) and build_types
-    common_cmd_args = ['scons', '-Q', 'build={}'.format(','.join(build_types))]
+    common_cmd_args = ['scons', '-Q']
+    common_cmd_args.extend(jobs_arg())
+    common_cmd_args.extend(['build={}'.format(','.join(build_types))])
 
     if not clean:
-        subprocess.check_call(common_cmd_args + ['stage=compile'])
-        subprocess.check_call(common_cmd_args + ['stage=link'])
+        run_cmd(common_cmd_args + ['stage=compile'])
+        run_cmd(common_cmd_args + ['stage=link'])
     else:
-        subprocess.check_call(common_cmd_args + ['stage=link', '--clean'])
+        run_cmd(common_cmd_args + ['stage=link', '--clean'])
     pass
-
-# build clean
-# scons -Q --clean build=all stage=link
 
 
 def main():
