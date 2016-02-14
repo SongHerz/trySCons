@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import sys
+import argparse
+
+
+def parse_args():
+    """
+    Return ([build type], clean)
+    A 'build type' is one of release / release / debug.
+    clean   Bool    whether clean or not.
+    """
+    parser = argparse.ArgumentParser(description='Build this project')
+    parser.add_argument('BUILD_TYPE', nargs='*', choices=['coverage', 'release', 'debug', 'clean'],
+                        default='debug',
+                        help='Build given version(s) of the project (default: %(default)s)')
+
+    args = parser.parse_args(sys.argv[1:])
+
+    def update(acc, build_type):
+        build_types, clean = acc
+
+        if build_type == 'clean':
+            return (build_types, True)
+        else:
+            build_types.append(build_type)
+            return (build_types, clean)
+
+    if isinstance(args.BUILD_TYPE, list):
+        arg_build_types = args.BUILD_TYPE
+    else:
+        assert isinstance(args.BUILD_TYPE, str)
+        arg_build_types = [args.BUILD_TYPE]
+
+    build_types, clean = reduce(update, arg_build_types, ([], False))
+
+    # build_types may be empty or contains duplicate strings
+    if not build_types:
+        build_types = ['debug']
+    else:
+        build_types = list(set(build_types))
+
+    return (build_types, clean)
+
+
+def build(build_types, clean):
+    """
+    build_types [build type] coverage / release / debug
+    clean       Bool    When True, clean the project with given targets
+                             False, build the project with given targets
+    """
+    print 'build_types:', build_types
+    print 'clean:', clean
+    pass
+
+# build clean
+# scons -Q --clean build=all stage=link
+
+
+def main():
+    build_types, clean = parse_args()
+    build(build_types, clean)
+
+if __name__ == '__main__':
+    main()
