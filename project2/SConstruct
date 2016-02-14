@@ -9,6 +9,7 @@
 
 import os
 import StringIO
+import subprocess
 # SCons is used explicitly
 import SCons
 import buildhelper as bh
@@ -205,7 +206,18 @@ class Build(object):
         """
         def build_one_app(acc, app_main_obj):
             app_name, _ = os.path.splitext(str(app_main_obj))
-            necessary_lib_targets = self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
+
+            try:
+                necessary_lib_targets = self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
+            except subprocess.CalledProcessError as e:
+                # With --clean option, ignore the error.
+                if self.__env.GetOption('clean'):
+                    necessary_lib_targets = g_node_list_type()
+                else:
+                    print e
+                    print "Please run scons with 'stage=compile' to compile it."
+                    self.__env.Exit(1)
+
             app_main_target = self.__env.Program(app_name, app_main_obj, LIBS=necessary_lib_targets)
             assert isinstance(app_main_target, g_node_list_type)
             acc.extend(app_main_target)
@@ -231,12 +243,15 @@ def main():
     build_env = BuildEnv(SOURCE_DIR)
 
     if not GetOption('help'):
-        if build_env.in_compile_stage():
-            print bh.text_box("Compile")
-            print build_env
+        if GetOption('clean'):
+            print bh.text_box('Clean')
         else:
-            assert build_env.in_link_stage()
-            print bh.text_box("Link")
+            if build_env.in_compile_stage():
+                print bh.text_box("Compile")
+                print build_env
+            else:
+                assert build_env.in_link_stage()
+                print bh.text_box("Link")
 
     for each in build_env.build_configs():
         build = Build(build_env, each)
