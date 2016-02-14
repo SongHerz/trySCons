@@ -55,6 +55,8 @@ class BuildEnv(object):
         vs = Variables(None, ARGUMENTS)
         vs.Add(ListVariable(key='build', help='build type', default='debug',
                             names=('release', 'coverage', 'debug'), map={}))
+        vs.Add(EnumVariable(key='stage', help='build stage', default='compile',
+                            allowed_values=('compile', 'link'), map={}, ignorecase=0))
         vs.Update(env)
         Help(vs.GenerateHelpText(env))
         pass
@@ -75,6 +77,12 @@ class BuildEnv(object):
         for each in self.static_lib_dirs:
             self.__static_lib_srcs_map[each] = bh.c_cpp_sources(each)
         pass
+
+    def in_compile_stage(self):
+        return self.common_env['stage'] == 'compile'
+
+    def in_link_stage(self):
+        return self.common_env['stage'] == 'link'
 
     def static_lib_srcs(self, lib_dir_path):
         """
@@ -218,13 +226,23 @@ class Build(object):
         static_lib_targets = self.build_static_libs()
         app_main_obj_targets = self.build_app_main_objs()
         app_targets = self.build_apps(app_main_obj_targets, static_lib_targets)
-        return (static_lib_targets + app_main_obj_targets, app_targets)
+
+        self.__env.Alias('compile', static_lib_targets + app_main_obj_targets)
+        self.__env.Alias('link', app_targets)
+        pass
 
 
 def main():
     SOURCE_DIR = 'src'
     build_env = BuildEnv(SOURCE_DIR)
-    print build_env
+
+    if not GetOption('help'):
+        if build_env.in_compile_stage():
+            print bh.text_box("Compile")
+            print build_env
+        else:
+            assert build_env.in_link_stage()
+            print bh.text_box("Link")
 
     for each in build_env.build_configs():
         build = Build(build_env, each)

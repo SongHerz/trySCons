@@ -2,6 +2,8 @@
 
 import os
 import itertools
+import StringIO
+
 
 def ls(dir_path):
     """
@@ -18,6 +20,7 @@ def ls(dir_path):
 
     return reduce(entry_bucket, os.listdir(dir_path), ([], []))
 
+
 def is_c_cpp_source(file_path):
     """
     Check if the given file_path is a C/C++ source file.
@@ -26,6 +29,7 @@ def is_c_cpp_source(file_path):
     return any(itertools.imap(
         lambda ext: file_path.endswith(ext), exts))
 
+
 def c_cpp_sources(dir_path):
     """
     Return [file path] in given dir_path.
@@ -33,13 +37,15 @@ def c_cpp_sources(dir_path):
     """
     _, files = ls(dir_path)
     return filter(is_c_cpp_source, files)
-    
+
+
 def dirs_c_cpp_sources(dir_path):
     """
     Return dirs and C/C++ sources under dir_path with recursive.
     """
     dirs, files = ls(dir_path)
     return (dirs, filter(is_c_cpp_source, files))
+
 
 def replace_top_dir(old_path, new_top):
     """
@@ -50,3 +56,18 @@ def replace_top_dir(old_path, new_top):
     'a', 'new_top' -> 'new_top/a'
     """
     return os.path.join(new_top, old_path[old_path.find(os.sep) + 1:])
+
+
+def text_box(msg, border='#'):
+    """
+    Return a string which is a text box.
+    """
+    assert isinstance(border, str) and len(border) == 1
+    msg_line = '{} {} {}'.format(border, msg, border)
+    top_bot_line = border * len(msg_line)
+
+    sio = StringIO.StringIO()
+    print >> sio, top_bot_line
+    print >> sio, msg_line
+    print >> sio, top_bot_line
+    return sio.getvalue()
