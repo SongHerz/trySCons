@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import StringIO
-import pipes
 import subprocess
 import itertools
 
@@ -56,9 +55,9 @@ def _get_symtbl(binary):
     Raise exception with failure reason when failed to run nm.
     """
     ## Get nm output
-    cmd = 'nm --extern-only {}'.format(pipes.quote(binary))
+    cmd_args = ['nm', '--extern-only', binary]
     # When check_output failed, subprocess.CalledProcessError will be raised
-    nm_out = subprocess.check_output(cmd, shell=True)
+    nm_out = subprocess.check_output(cmd_args)
 
     sym_tbl = _SymTbl()
     ## Get defined / undefined symbols from nm
