@@ -168,17 +168,15 @@ class Build(object):
         return reduce(build_one_static_lib, self.__build_env.static_lib_dirs, g_node_list_type())
 
     @staticmethod
-    def __linked_static_lib_targets(app_main_obj_targets, static_lib_targets):
+    def __linked_static_lib_targets(app_main_obj_target, static_lib_targets):
         """
         Return [necessary static lib targets]
-        app_main_obj_targets    [app main obj target node]
+        app_main_obj_targets    app main obj target node
         static_lib_targets      [static lib target node]
         """
-        assert isinstance(app_main_obj_targets, g_node_list_type) and len(app_main_obj_targets) == 1
         assert isinstance(static_lib_targets, g_node_list_type)
 
-        app_main_obj_node = app_main_obj_targets[0]
-        app_main_obj_path = str(app_main_obj_node)
+        app_main_obj_path = str(app_main_obj_target)
 
         # {lib path : target node}
         lib_path_node_map = dict(map(lambda n: (str(n), n), static_lib_targets))
@@ -207,11 +205,8 @@ class Build(object):
         """
         def build_one_app(acc, app_main_obj):
             app_name, _ = os.path.splitext(str(app_main_obj))
-
-            if False:
-                self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
-
-            app_main_target = self.__env.Program(app_name, app_main_obj, LIBS=static_lib_targets)
+            necessary_lib_targets = self.__linked_static_lib_targets(app_main_obj, static_lib_targets)
+            app_main_target = self.__env.Program(app_name, app_main_obj, LIBS=necessary_lib_targets)
             assert isinstance(app_main_target, g_node_list_type)
             acc.extend(app_main_target)
             return acc
@@ -225,10 +220,9 @@ class Build(object):
         """
         static_lib_targets = self.build_static_libs()
         app_main_obj_targets = self.build_app_main_objs()
-        app_targets = self.build_apps(app_main_obj_targets, static_lib_targets)
 
-        self.__env.Alias('compile', static_lib_targets + app_main_obj_targets)
-        self.__env.Alias('link', app_targets)
+        if self.__build_env.in_link_stage():
+            self.build_apps(app_main_obj_targets, static_lib_targets)
         pass
 
 
