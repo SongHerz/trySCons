@@ -37,15 +37,39 @@ class BuildEnv(object):
     """
     Build enviroment for all builds.
     """
+    COMMON_CONSTR_VARS = {
+        'CXXFLAGS': ['-std=c++11']
+    }
+    RELEASE_CONSTR_VARS = {}
+    COVERAGE_CONSTR_VARS = {}
+    DEBUG_CONSTR_VARS = {
+        'CCFLAGS': ['-g']
+    }
+
+    @staticmethod
+    def __create_build_vars():
+        """
+        Return Variables instance.
+        """
+        vs = Variables(None, ARGUMENTS)
+        vs.Add(ListVariable(key='build', help='build type', default='debug',
+                            names=('release', 'coverage', 'debug'), map={}))
+        return vs
+
     def __init__(self, src_dir):
         """
         src_dir         source directory
         """
         self.src_dir = src_dir
         self.static_lib_dirs, self.app_main_srcs = bh.dirs_c_cpp_sources(src_dir)
+
+        vs = self.__create_build_vars()
         self.common_env = Environment(
-            CPPPATH=[self.src_dir],
-            CXXFLAGS=['-std=c++11'])
+            variables=vs,
+            CPPPATH=[self.src_dir])
+        Help(vs.GenerateHelpText(self.common_env))
+
+        self.common_env.Append(**self.COMMON_CONSTR_VARS)
 
         # { static lib dir : [c/c++ sources] }
         self.__static_lib_srcs_map = {}
@@ -59,6 +83,23 @@ class BuildEnv(object):
         The lib_dir_path must be from a valid static_lib_dir, otherwise, raise KeyError.
         """
         return self.__static_lib_srcs_map[lib_dir_path]
+
+    def build_configs(self):
+        """
+        Return [BuildConfig instance]
+        """
+        def pick_constr_vars(build_type):
+            if build_type == 'release':
+                return self.RELEASE_CONSTR_VARS
+            elif build_type == 'coverage':
+                return self.COVERAGE_CONSTR_VARS
+            else:
+                assert build_type == 'debug'
+                return self.DEBUG_CONSTR_VARS
+
+        return map(
+            lambda bt: BuildConfig(os.path.join('obj', bt), pick_constr_vars(bt)),
+            set(self.common_env['build']))
 
     def __str__(self):
         """
@@ -181,40 +222,13 @@ class Build(object):
         return (static_lib_targets + app_main_obj_targets, app_targets)
 
 
-SOURCE_DIR = 'src'
-
-RELEASE_CONFIG = BuildConfig('obj/release', {})
-COVERAGE_CONFIG = BuildConfig('obj/coverage', {})
-DEBUG_CONFIG = BuildConfig('obj/debug', {
-    'CCFLAGS': ['-g']
-})
-
-
-def choose_build_config(build_type):
-    if build_type == 'release':
-        return RELEASE_CONFIG
-    elif build_type == 'coverage':
-        return COVERAGE_CONFIG
-    else:
-        assert build_type == 'debug'
-        return DEBUG_CONFIG
-
-
 def main():
-    vs = Variables(None, ARGUMENTS)
-    vs.Add(ListVariable(key='build', help='build type', default='debug',
-                        names=('release', 'coverage', 'debug'), map={}))
-
-    help_env = Environment(variables=vs)
-    Help(vs.GenerateHelpText(help_env))
-
-    build_types = set(help_env['build'])
-
+    SOURCE_DIR = 'src'
     build_env = BuildEnv(SOURCE_DIR)
     print build_env
 
-    for each in build_types:
-        build = Build(build_env, choose_build_config(each))
+    for each in build_env.build_configs():
+        build = Build(build_env, each)
         build.build()
 
 main()
