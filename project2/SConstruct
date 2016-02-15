@@ -11,6 +11,8 @@ BUILD_DIR = 'obj'
 COMMON_CONSTR_VARS = {
     # Path to include directories
     'CPPPATH':  [SOURCE_DIR],
+    # Defines
+    'CPPDEFINES': [],
     # General options for C ONLY
     'CFLAGS':   [],
     # General options for C++ ONLY
@@ -20,7 +22,7 @@ COMMON_CONSTR_VARS = {
     # Path to library directories
     'LIBPATH': [],
     # List of libraries to link to executables
-    'LIBS': []
+    'LIBS': ['rt']
 }
 
 RELEASE_CONSTR_VARS = {}

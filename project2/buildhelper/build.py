@@ -225,13 +225,16 @@ class Build(object):
             except subprocess.CalledProcessError as e:
                 # With --clean option, ignore the error.
                 if self.__env.GetOption('clean'):
-                    necessary_lib_targets = g_node_list_type()
+                    necessary_lib_targets = []
                 else:
                     print e
                     print "Please run scons with 'stage=compile' to compile it."
                     self.__env.Exit(1)
 
-            app_main_target = self.__env.Program(app_name, app_main_obj, LIBS=necessary_lib_targets)
+            # Link an app with its specialized libraires
+            app_link_env = self.__env.Clone()
+            app_link_env.Prepend(LIBS=necessary_lib_targets)
+            app_main_target = app_link_env.Program(app_name, app_main_obj)
             assert isinstance(app_main_target, g_node_list_type)
             acc.extend(app_main_target)
             return acc
