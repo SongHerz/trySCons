@@ -12,7 +12,10 @@ import StringIO
 import subprocess
 
 import SCons
-from SCons.Script import *
+from SCons.Script import \
+    EnsurePythonVersion, ARGUMENTS, GetOption, Help, \
+    Environment, Variables, ListVariable, EnumVariable
+
 from . import linkdep
 from . import fs
 from . import misc
@@ -40,15 +43,6 @@ class BuildEnv(object):
     """
     Build enviroment for all builds.
     """
-    COMMON_CONSTR_VARS = {
-        'CXXFLAGS': ['-std=c++11']
-    }
-    RELEASE_CONSTR_VARS = {}
-    COVERAGE_CONSTR_VARS = {}
-    DEBUG_CONSTR_VARS = {
-        'CCFLAGS': ['-g']
-    }
-
     @staticmethod
     def __add_build_vars(env):
         """
@@ -64,16 +58,33 @@ class BuildEnv(object):
         Help(vs.GenerateHelpText(env))
         pass
 
-    def __init__(self, src_dir):
+    def __init__(self,
+                 src_dir,
+                 build_dir,
+                 common_construct_vars,
+                 release_construct_vars,
+                 coverage_construct_vars,
+                 debug_construct_vars):
         """
-        src_dir         source directory
+        src_dir                 source directory
+        build_dir               build directory
+        common_construct_vars   {consttruction var : value}
+                                Common construction vars for all build versions.
+        release_construct_vars
+        coverage_construct_vars
+        debug_construct_vars    Type is the same as common_construct_vars,
+                                but for different build versions.
         """
         self.src_dir = src_dir
+        self.build_dir = build_dir
         self.static_lib_dirs, self.app_main_srcs = fs.dirs_c_cpp_sources(src_dir)
 
-        self.common_env = Environment(CPPPATH=[self.src_dir])
-        self.common_env.Append(**self.COMMON_CONSTR_VARS)
+        self.common_env = Environment(**common_construct_vars)
         self.__add_build_vars(self.common_env)
+
+        self.release_construct_vars = release_construct_vars
+        self.coverage_construct_vars = coverage_construct_vars
+        self.debug_construct_vars = debug_construct_vars
 
         # { static lib dir : [c/c++ sources] }
         self.__static_lib_srcs_map = {}
@@ -100,15 +111,15 @@ class BuildEnv(object):
         """
         def pick_constr_vars(build_type):
             if build_type == 'release':
-                return self.RELEASE_CONSTR_VARS
+                return self.release_construct_vars
             elif build_type == 'coverage':
-                return self.COVERAGE_CONSTR_VARS
+                return self.coverage_construct_vars
             else:
                 assert build_type == 'debug'
-                return self.DEBUG_CONSTR_VARS
+                return self.debug_construct_vars
 
         return map(
-            lambda bt: BuildConfig(os.path.join('obj', bt), pick_constr_vars(bt)),
+            lambda bt: BuildConfig(os.path.join(self.build_dir, bt), pick_constr_vars(bt)),
             set(self.common_env['build']))
 
     def __str__(self):
@@ -240,9 +251,28 @@ class Build(object):
         pass
 
 
-def build():
-    SOURCE_DIR = 'src'
-    build_env = BuildEnv(SOURCE_DIR)
+def build(src_dir,
+          build_dir,
+          common_construct_vars,
+          release_construct_vars,
+          coverage_construct_vars,
+          debug_construct_vars):
+    """
+    src_dir                 source directory
+    build_dir               build directory
+    common_construct_vars   {consttruction var : value}
+                            Common construction vars for all build versions.
+    release_construct_vars
+    coverage_construct_vars
+    debug_construct_vars    Type is the same as common_construct_vars,
+                            but for different build versions.
+    """
+    build_env = BuildEnv(src_dir=src_dir,
+                         build_dir=build_dir,
+                         common_construct_vars=common_construct_vars,
+                         release_construct_vars=release_construct_vars,
+                         coverage_construct_vars=coverage_construct_vars,
+                         debug_construct_vars=debug_construct_vars)
 
     if not GetOption('help'):
         if GetOption('clean'):

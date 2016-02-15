@@ -2,4 +2,38 @@
 
 from buildhelper import build
 
-build.build()
+SOURCE_DIR = 'src'
+BUILD_DIR = 'obj'
+
+# For all construction variables, refer
+# `man scons`, section 'Construction Variables'.
+# Here list some general C/C++ constuction variables.
+COMMON_CONSTR_VARS = {
+    # Path to include directories
+    'CPPPATH':  [SOURCE_DIR],
+    # General options for C ONLY
+    'CFLAGS':   [],
+    # General options for C++ ONLY
+    'CXXFLAGS': ['-std=c++11'],
+    # General options for C and C++
+    'CCFLAGS':  [],
+    # Path to library directories
+    'LIBPATH': [],
+    # List of libraries to link to executables
+    'LIBS': []
+}
+
+RELEASE_CONSTR_VARS = {}
+
+COVERAGE_CONSTR_VARS = {}
+
+DEBUG_CONSTR_VARS = {
+    'CCFLAGS': ['-g']
+}
+
+build.build(src_dir=SOURCE_DIR,
+            build_dir=BUILD_DIR,
+            common_construct_vars=COMMON_CONSTR_VARS,
+            release_construct_vars=RELEASE_CONSTR_VARS,
+            coverage_construct_vars=COVERAGE_CONSTR_VARS,
+            debug_construct_vars=DEBUG_CONSTR_VARS)
