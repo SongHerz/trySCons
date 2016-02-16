@@ -19,6 +19,7 @@ from SCons.Script import \
 from . import linkdep
 from . import fs
 from . import misc
+from . import buildtype
 
 EnsurePythonVersion(2, 7)
 
@@ -49,10 +50,10 @@ class BuildEnv(object):
         Return Variables instance.
         """
         assert isinstance(env, Environment)
-        assert isinstance(build_type_names, list) and len(build_type_names) > 0
-        assert all(map(lambda x: isinstance(x, str), build_type_names))
         vs = Variables(None, ARGUMENTS)
-        vs.Add(ListVariable(key='build', help='build type', default=build_type_names[0],
+        vs.Add(ListVariable(key='build',
+                            help=buildtype.help_msg(build_type_names),
+                            default=buildtype.default(build_type_names),
                             names=build_type_names, map={}))
         vs.Add(EnumVariable(key='stage', help='build stage', default='compile',
                             allowed_values=('compile', 'link'), map={}, ignorecase=0))

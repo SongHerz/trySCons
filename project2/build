@@ -6,16 +6,35 @@ import argparse
 import subprocess
 import multiprocessing
 
+from buildhelper import buildtype
+
+
+def get_build_types():
+    """
+    Return ([build type in str], default type in str)
+    """
+    print
+    print "Retriving build types ..."
+    output = subprocess.check_output(['scons', '-h'])
+    for each in output.splitlines():
+        t = buildtype.from_str(each)
+        if t is not None:
+            return t
+
+    assert False, "Should not be here"
+    pass
+
 
 def parse_args():
     """
     Return ([build type], clean)
-    A 'build type' is one of release / release / debug.
     clean   Bool    whether clean or not.
     """
+    all_bts, default_bt = get_build_types()
+
     parser = argparse.ArgumentParser(description='Build this project')
-    parser.add_argument('BUILD_TYPE', nargs='*', choices=['coverage', 'release', 'debug', 'clean'],
-                        default='debug',
+    parser.add_argument('BUILD_TYPE', nargs='*', choices=all_bts + ['clean'],
+                        default=default_bt,
                         help='Build given version(s) of the project (default: %(default)s)')
 
     args = parser.parse_args(sys.argv[1:])
@@ -39,7 +58,7 @@ def parse_args():
 
     # build_types may be empty or contains duplicate strings
     if not build_types:
-        build_types = ['debug']
+        build_types = [default_bt]
     else:
         build_types = list(set(build_types))
 
@@ -53,6 +72,9 @@ def build(build_types, clean):
                              False, build the project with given targets
     """
     def run_cmd(args):
+        """
+        Show the command in shell, and run the cmd.
+        """
         print
         print ' '.join(map(pipes.quote, args))
         subprocess.check_call(args)
