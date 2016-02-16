@@ -44,14 +44,16 @@ class BuildEnv(object):
     Build enviroment for all builds.
     """
     @staticmethod
-    def __add_build_vars(env):
+    def __add_build_vars(env, build_type_names):
         """
         Return Variables instance.
         """
         assert isinstance(env, Environment)
+        assert isinstance(build_type_names, list) and len(build_type_names) > 0
+        assert all(map(lambda x: isinstance(x, str), build_type_names))
         vs = Variables(None, ARGUMENTS)
-        vs.Add(ListVariable(key='build', help='build type', default='debug',
-                            names=('release', 'coverage', 'debug'), map={}))
+        vs.Add(ListVariable(key='build', help='build type', default=build_type_names[0],
+                            names=build_type_names, map={}))
         vs.Add(EnumVariable(key='stage', help='build stage', default='compile',
                             allowed_values=('compile', 'link'), map={}, ignorecase=0))
         vs.Update(env)
@@ -62,29 +64,25 @@ class BuildEnv(object):
                  src_dir,
                  build_dir,
                  common_construct_vars,
-                 release_construct_vars,
-                 coverage_construct_vars,
-                 debug_construct_vars):
+                 bt_cv_pairs):
         """
         src_dir                 source directory
         build_dir               build directory
-        common_construct_vars   {consttruction var : value}
+        common_construct_vars   {construction var : value}
                                 Common construction vars for all build versions.
-        release_construct_vars
-        coverage_construct_vars
-        debug_construct_vars    Type is the same as common_construct_vars,
-                                but for different build versions.
+        bt_cv_pairs             [(build type name, construction vars)]
+                                Type of construction vars is the same as common_construct_vars
         """
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.static_lib_dirs, self.app_main_srcs = fs.dirs_c_cpp_sources(src_dir)
 
         self.common_env = Environment(**common_construct_vars)
-        self.__add_build_vars(self.common_env)
+        self.__add_build_vars(self.common_env, map(lambda (n, _): n, bt_cv_pairs))
 
-        self.release_construct_vars = release_construct_vars
-        self.coverage_construct_vars = coverage_construct_vars
-        self.debug_construct_vars = debug_construct_vars
+        # { build type name : construct vars map }
+        # construct vars map { construction var : value }
+        self.__bt_cv_map = dict(bt_cv_pairs)
 
         # { static lib dir : [c/c++ sources] }
         self.__static_lib_srcs_map = {}
@@ -109,17 +107,10 @@ class BuildEnv(object):
         """
         Return [BuildConfig instance]
         """
-        def pick_constr_vars(build_type):
-            if build_type == 'release':
-                return self.release_construct_vars
-            elif build_type == 'coverage':
-                return self.coverage_construct_vars
-            else:
-                assert build_type == 'debug'
-                return self.debug_construct_vars
-
         return map(
-            lambda bt: BuildConfig(os.path.join(self.build_dir, bt), pick_constr_vars(bt)),
+            lambda bt_name: BuildConfig(
+                os.path.join(self.build_dir, bt_name),
+                self.__bt_cv_map[bt_name]),
             set(self.common_env['build']))
 
     def __str__(self):
@@ -257,25 +248,19 @@ class Build(object):
 def build(src_dir,
           build_dir,
           common_construct_vars,
-          release_construct_vars,
-          coverage_construct_vars,
-          debug_construct_vars):
+          bt_cv_pairs):
     """
     src_dir                 source directory
     build_dir               build directory
     common_construct_vars   {consttruction var : value}
                             Common construction vars for all build versions.
-    release_construct_vars
-    coverage_construct_vars
-    debug_construct_vars    Type is the same as common_construct_vars,
-                            but for different build versions.
+    bt_cv_pairs             [(build type name, construction vars)]
+                            Type of construction vars is the same as common_construct_vars
     """
     build_env = BuildEnv(src_dir=src_dir,
                          build_dir=build_dir,
                          common_construct_vars=common_construct_vars,
-                         release_construct_vars=release_construct_vars,
-                         coverage_construct_vars=coverage_construct_vars,
-                         debug_construct_vars=debug_construct_vars)
+                         bt_cv_pairs=bt_cv_pairs)
 
     if not GetOption('help'):
         if GetOption('clean'):
