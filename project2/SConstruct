@@ -36,6 +36,7 @@ DEBUG_CONSTR_VARS = {
 build.build(src_dir=SOURCE_DIR,
             build_dir=BUILD_DIR,
             common_construct_vars=COMMON_CONSTR_VARS,
-            release_construct_vars=RELEASE_CONSTR_VARS,
-            coverage_construct_vars=COVERAGE_CONSTR_VARS,
-            debug_construct_vars=DEBUG_CONSTR_VARS)
+            bt_cv_pairs=[
+                ('debug', DEBUG_CONSTR_VARS),
+                ('coverage', COVERAGE_CONSTR_VARS),
+                ('release', RELEASE_CONSTR_VARS)])
