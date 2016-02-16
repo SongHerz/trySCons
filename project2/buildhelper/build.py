@@ -273,6 +273,6 @@ def build(src_dir,
                 assert build_env.in_link_stage()
                 print misc.text_box("Link")
 
-    for each in build_env.build_configs():
-        build = Build(build_env, each)
-        build.build()
+        for each in build_env.build_configs():
+            build = Build(build_env, each)
+            build.build()
