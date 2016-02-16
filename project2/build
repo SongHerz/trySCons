@@ -30,10 +30,12 @@ def parse_args():
     Return ([build type], clean)
     clean   Bool    whether clean or not.
     """
+    clean_opt = 'clean'
     all_bts, default_bt = get_build_types()
 
     parser = argparse.ArgumentParser(description='Build this project')
-    parser.add_argument('BUILD_TYPE', nargs='*', choices=all_bts + ['clean'],
+    assert clean_opt not in all_bts
+    parser.add_argument('BUILD_TYPE', nargs='*', choices=all_bts + [clean_opt],
                         default=default_bt,
                         help='Build given version(s) of the project (default: %(default)s)')
 
@@ -42,7 +44,7 @@ def parse_args():
     def update(acc, build_type):
         build_types, clean = acc
 
-        if build_type == 'clean':
+        if build_type == clean_opt:
             return (build_types, True)
         else:
             build_types.append(build_type)
