@@ -5,12 +5,15 @@ from buildhelper import build
 SOURCE_DIR = 'src'
 BUILD_DIR = 'obj'
 
+BOOST_INC_DIR = '/home/song/depot/include/'
+BOOST_LIB_DIR = '/home/song/depot/lib/'
+
 # For all construction variables, refer
 # `man scons`, section 'Construction Variables'.
 # Here list some general C/C++ constuction variables.
 COMMON_CONSTR_VARS = {
     # Path to include directories
-    'CPPPATH':  [SOURCE_DIR],
+    'CPPPATH':  [SOURCE_DIR, BOOST_INC_DIR],
     # Defines
     'CPPDEFINES': [],
     # General options for C ONLY
@@ -20,9 +23,9 @@ COMMON_CONSTR_VARS = {
     # General options for C and C++
     'CCFLAGS':  [],
     # Path to library directories
-    'LIBPATH': [],
+    'LIBPATH': [BOOST_LIB_DIR],
     # List of libraries to link to executables
-    'LIBS': ['rt']
+    'LIBS': ['boost_system', 'boost_thread', 'boost_context', 'boost_coroutine', 'rt']
 }
 
 RELEASE_CONSTR_VARS = {}
